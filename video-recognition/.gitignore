@@ -1,0 +1,93 @@
+# Python virtual environment
+venv/
+dog_detector_env/
+env/
+ENV/
+.env/
+.venv/
+*_env/
+
+# Python bytecode cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+*.egg
+
+# YOLOv5 specific
+*.pt
+runs/
+weights/
+yolov5/
+
+# Model files (can be large)
+*.onnx
+*.torchscript
+*.tensorboard
+*.pth
+
+# Output directories and files
+output/
+results/
+*_results.json
+*_detections.jpg
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings
+
+# OS specific files
+.DS_Store
+Thumbs.db
+.directory
+Desktop.ini
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Log files
+*.log
+logs/
+
+# Image files (only ignore if you don't want to track sample images)
+# Uncomment if needed
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.mp4
+
+# Temporary files
+temp/
+tmp/
+
+# Virtual environment related
+pip-log.txt
+pip-delete-this-directory.txt
