@@ -1,7 +1,8 @@
 import cv2
 import torch
-import os
 import warnings
+
+from traffic_light import classify_traffic_light
 
 # Suppress the specific FutureWarning about torch.cuda.amp.autocast
 warnings.filterwarnings('ignore', category=FutureWarning, message='.*torch.cuda.amp.autocast.*')
@@ -36,7 +37,8 @@ while cap.isOpened():
     results = model(frame)
     detections = results.pandas().xyxy[0]  # Bounding box results
 
-    stop_flag = False
+    # 0 = keep moving, 1 = caution, 2 = stop. A weaker action cannot replace a stronger one.
+    action_rank = 0
     action_label = "KEEP MOVING"
 
     for _, row in detections.iterrows():
@@ -44,27 +46,34 @@ while cap.isOpened():
         conf = row['confidence']
         xmin, ymin, xmax, ymax = int(row['xmin']), int(row['ymin']), int(row['xmax']), int(row['ymax'])
 
-        # Draw bounding box and label
+        shown = f"{label} {conf:.2f}"
+        if label == 'traffic light' and conf > 0.5:
+            color = classify_traffic_light(frame[ymin:ymax, xmin:xmax])
+            shown = f"traffic light {color} {conf:.2f}"
+            if color == 'red' and action_rank < 2:
+                action_rank = 2
+                action_label = "STOP (red light)"
+            elif color == 'yellow' and action_rank < 1:
+                action_rank = 1
+                action_label = "CAUTION (yellow light)"
+
         cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
-        cv2.putText(frame, f"{label} {conf:.2f}", (xmin, ymin - 10),
+        cv2.putText(frame, shown, (xmin, max(ymin - 10, 15)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
-        # Decision logic
-        if label in STOP_OBJECTS and conf > 0.5:
-            if label == 'traffic light':
-                # Simplified assumption: any detected light is red
-                action_label = "STOP (traffic light)"
-                stop_flag = True
-            elif label in ['person', 'bicycle']:
-                action_label = f"STOP ({label})"
-                stop_flag = True
-            elif label == 'stop sign':
-                action_label = "STOP (stop sign)"
-                stop_flag = True
+        if label in STOP_OBJECTS and label != 'traffic light' and conf > 0.5 and action_rank < 2:
+            action_rank = 2
+            action_label = f"STOP ({label})"
 
     # Overlay action decision on frame
+    if action_rank == 2:
+        action_color = (0, 0, 255)
+    elif action_rank == 1:
+        action_color = (0, 165, 255)
+    else:
+        action_color = (0, 255, 0)
     cv2.putText(frame, f"ACTION: {action_label}", (30, 40),
-                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255) if stop_flag else (0, 255, 0), 3)
+                cv2.FONT_HERSHEY_SIMPLEX, 1.0, action_color, 3)
 
     # Write frame to output video
     out.write(frame)
