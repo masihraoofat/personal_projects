@@ -2,6 +2,7 @@ import cv2
 import torch
 import warnings
 
+from action_smoother import ActionSmoother
 from traffic_light import classify_traffic_light
 
 # Suppress the specific FutureWarning about torch.cuda.amp.autocast
@@ -27,6 +28,9 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 out = cv2.VideoWriter('output_dashcam_annotated.mp4', fourcc, fps, (width, height))
 
 frame_count = 0
+# The same raw action must repeat this many frames before the overlay changes.
+HOLD_FRAMES = 3
+smoother = ActionSmoother(hold_frames=HOLD_FRAMES)
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -65,15 +69,18 @@ while cap.isOpened():
             action_rank = 2
             action_label = f"STOP ({label})"
 
-    # Overlay action decision on frame
-    if action_rank == 2:
+    # The box labels stay per frame. Only the action overlay waits for agreement.
+    shown_rank, shown_label = smoother.update(action_rank, action_label)
+    if shown_rank == 2:
         action_color = (0, 0, 255)
-    elif action_rank == 1:
+    elif shown_rank == 1:
         action_color = (0, 165, 255)
     else:
         action_color = (0, 255, 0)
-    cv2.putText(frame, f"ACTION: {action_label}", (30, 40),
+    cv2.putText(frame, f"ACTION: {shown_label}", (30, 40),
                 cv2.FONT_HERSHEY_SIMPLEX, 1.0, action_color, 3)
+    cv2.putText(frame, f"FRAME: {action_label}", (30, 80),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
     # Write frame to output video
     out.write(frame)
