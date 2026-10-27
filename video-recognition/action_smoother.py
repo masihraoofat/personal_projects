@@ -5,9 +5,11 @@ The smoother publishes the previous action until the new one has been
 seen for `hold_frames` consecutive frames.
 """
 
+DEFAULT_HOLD_FRAMES = 3
+
 
 class ActionSmoother:
-    def __init__(self, hold_frames=3):
+    def __init__(self, hold_frames=DEFAULT_HOLD_FRAMES):
         if hold_frames < 1:
             raise ValueError("hold_frames must be at least 1")
         self.hold_frames = hold_frames
